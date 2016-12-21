@@ -1,8 +1,8 @@
 #!/usr/local/bin/python
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
-from datetime import datetime
 from openxc_script import write_CAN_message
+from datetime import datetime
 import time
 import urllib
 import urllib2
@@ -54,20 +54,34 @@ def get_messages(driver, CAN_data, base_timestamp, last_timestamp, message_count
 	#Reading from bottom to top because new data loads at top
 	for row in reversed(range(rowCount)):
 		header, data = rows[row].text.split("M",1)
-		parsed = json.loads(data)
-		#Reads timestamp for every record in the row
-		for each in parsed['records']:
-			#Assigns base timestamp
-			if base_timestamp == 0:
-				base_timestamp = int(each['timestamp'])
-			#Reads
-			if int(each['timestamp']) > last_timestamp:
-				CAN_data[0].append(each['timestamp'])
-				#CAN_data[1].append(each['bus'])
-				#CAN_data[2].append(each['id'])
-				#CAN_data[3].append(each['data'])
-				last_timestamp = int(each['timestamp'])
-				message_count += 1
+		#This is the length of an empty record
+		if len(data) > 15:
+			#Reformat JSON to remove partial data at beginning and end of string
+			records, data = data.split("[",1)
+			trash, data = data.split("{",1)
+			data = data[::-1]
+			trash, data = data.split("]",1)
+			trash,data = data.split("}",1)
+			data = data[::-1]
+			#Recreate poperly formatted JSON
+			data = records + '[{' + data + '}]}'
+			parsed = json.loads(data)
+			#Reads timestamp for every record in the row
+			for each in parsed['records']:
+				#Assigns base timestamp
+				if base_timestamp == 0:
+					base_timestamp = int(each['timestamp'])
+#
+#TODO: Must sort entries in each row by time...
+#
+				#Reads
+				if int(each['timestamp']) > last_timestamp:
+					CAN_data[0].append(each['timestamp'])
+					CAN_data[1].append(each['bus'])
+					CAN_data[2].append(each['id'])
+					CAN_data[3].append(each['data'])
+					last_timestamp = int(each['timestamp'])
+					message_count += 1
 
 	return base_timestamp, last_timestamp, message_count;
 
@@ -85,10 +99,6 @@ def main():
 	last_timestamp = 0
 	message_count = 0
 
-	#Gets current UTC time and converts to timestamp
-	base_time = datetime.utcnow()
-	base_time = calendar.timegm(base_time.utctimetuple())
-
 	#set refreshrate if applicable
 	refreshrate = int(5)
     
@@ -96,10 +106,9 @@ def main():
 	while True:
 		base_timestamp, last_timestamp, message_count = get_messages(driver, CAN_data, base_timestamp, last_timestamp, message_count)
 		print 'Message Count = ', message_count
-		print 'Base = ', base_timestamp
-		print 'Last = ', last_timestamp
-		print CAN_data
-		#write_CAN_message(CAN_data, base_timestamp)
+		print 'Basetimestamp = ', base_timestamp
+		print 'Lasttimestamp = ', last_timestamp
+		write_CAN_message(CAN_data, base_timestamp)
 		#Refresh
 		print 'Sleep'
 		time.sleep(refreshrate)
