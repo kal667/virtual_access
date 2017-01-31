@@ -72,7 +72,8 @@ def get_messages(driver, CAN_data, base_timestamp, last_timestamp, message_count
 				if base_timestamp == 0:
 					base_timestamp = int(each['timestamp'])
 #
-#TODO: Must sort entries in each row by time...
+#TODO: Must sort entries in each row by time...?
+#Do this is two steps? Read all entries into an array and then sort into a second array?
 #
 				#Reads
 				if int(each['timestamp']) > last_timestamp:
@@ -85,6 +86,15 @@ def get_messages(driver, CAN_data, base_timestamp, last_timestamp, message_count
 
 	return base_timestamp, last_timestamp, message_count;
 
+def start_program_timer():
+
+	#Get current timestamp for comparison when writing CAN messages
+
+	current_timestamp = datetime.utcnow()
+	current_timestamp = calendar.timegm(current_timestamp.utctimetuple())
+
+	return current_timestamp;
+
 
 def main():
 
@@ -95,23 +105,26 @@ def main():
 
 	#Initialize 
 	driver = webdriver.Chrome()
-	base_timestamp = 0;
-	last_timestamp = 0
+	base_CAN_timestamp = 0
+	last_CAN_timestamp = 0
 	message_count = 0
+	start_program_timestamp = 0
 
 	#set refreshrate if applicable
 	refreshrate = int(5)
     
 	navigate_to_data(driver)
 	while True:
-		base_timestamp, last_timestamp, message_count = get_messages(driver, CAN_data, base_timestamp, last_timestamp, message_count)
+		base_CAN_timestamp, last_CAN_timestamp, message_count = get_messages(driver, CAN_data, base_timestamp, last_timestamp, message_count)
 		print 'Message Count = ', message_count
-		print 'Basetimestamp = ', base_timestamp
-		print 'Lasttimestamp = ', last_timestamp
-		write_CAN_message(CAN_data, base_timestamp)
+		print 'Basetimestamp = ', base_CAN_timestamp
+		print 'Lasttimestamp = ', last_CAN_timestamp
+		start_program_timestamp = start_program_timer()
+		print 'Start Program Timestamp = ', start_program_timestamp
+		write_CAN_message(CAN_data, base_timestamp, start_program_timestamp)
 		#Refresh
-		print 'Sleep'
-		time.sleep(refreshrate)
+		#print 'Sleep'
+		#time.sleep(refreshrate)
 		print 'Refresh'
 		driver.refresh()
 
