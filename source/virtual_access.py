@@ -1,4 +1,4 @@
-#!/usr/local/bin/python
+#!/usr/local/bin/python python
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from openxc_script import write_CAN_message
@@ -9,8 +9,9 @@ import urllib2
 import json
 import calendar
 
+
 def navigate_to_data(driver):
-	#Opens browser and queries data on server
+	"""Opens browser and queries data on server"""
 
 	#Chrome browser navigates to azure site
 	driver.get("http://umd-openxc.azurewebsites.net/devices/352682050225977/data")
@@ -26,8 +27,24 @@ def navigate_to_data(driver):
 	xpath = '//input[@type="submit"]'
 	driver.find_element_by_xpath(xpath).click()
 
-	#User sets date in browser for data to simulate
-	raw_input("Select date. Then press 'enter' to continue ...")
+	return
+
+
+def query_data_at_datetime(driver):
+	"""Searches data based on date and time input from user"""
+
+	startdatetime = get_start_datetime()
+	enddatetime = get_end_datetime(startdatetime)
+
+	#Enters start datetime
+	startdate = driver.find_element_by_id("StartDate")
+	startdate.clear()
+	startdate.send_keys(startdatetime)
+
+	#Enters end datetime
+	enddate = driver.find_element_by_id("EndDate")
+	enddate.clear()
+	enddate.send_keys(enddatetime)
 
 	#Query data at that date
 	xpath = '//button[@type="submit"]'
@@ -41,10 +58,58 @@ def navigate_to_data(driver):
 	xpath = '//th[@class="sorting_asc"]'
 	driver.find_element_by_xpath(xpath).click()
 
-	return;
+	return
+
+
+def get_start_datetime():
+	"""Gets a valid start date and time from the user"""
+	
+	"""Thanks StackOverflow"""
+	#Prompts user to enter date. Repeat until vaild entry.
+	while True:
+		date = raw_input("Enter start date (mm/dd/yyyy): ")
+		try:
+		  valid_date = time.strptime(date, '%m/%d/%Y')
+		  break
+		except ValueError:
+		  print "Invalid date!"
+			
+	#Prompts user to enter time. Repeat until vaild entry.
+	while True:
+		tme = raw_input("Enter start time (hh:mm AM/PM): ")
+		try:
+		  valid_time = time.strptime(tme, '%I:%M %p')
+		  break
+		except ValueError:
+		  print "Invalid time!"
+
+	#Crafts datetime string
+	startdatetime = str(date + " " + tme)
+
+	return startdatetime
+
+
+def get_end_datetime(startdatetime):
+	"""Parse entry date. Set end date to 12:00 AM of the nexy day"""
+
+	#Recover start day
+	month, day = startdatetime.split("/",1)
+	day, year = day.split("/",1)
+	year, time = year.split(" ", 1)
+
+	#Increment the day
+	day = int(day) + 1
+	day = str(day)
+
+	#Craft string
+	enddate = month + "/" + day + "/" + year
+	endtime = "12:00:00 AM"
+	enddatetime = str(enddate + " " + endtime)
+
+	return enddatetime 
 
 def get_messages(driver, CAN_data, base_timestamp, last_timestamp, message_count):
-	#Read all CAN messages into the CAN_data array
+	"""Read all CAN messages into the CAN_data array"""
 	
 	#Get message table rows
 	xpath = '//table[@id="loggedDataTable"]/tbody/tr'
@@ -71,10 +136,6 @@ def get_messages(driver, CAN_data, base_timestamp, last_timestamp, message_count
 				#Assigns base timestamp
 				if base_timestamp == 0:
 					base_timestamp = int(each['timestamp'])
-#
-#TODO: Must sort entries in each row by time...?
-#Do this is two steps? Read all entries into an array and then sort into a second array?
-#
 				#Reads
 				if int(each['timestamp']) > last_timestamp:
 					CAN_data[0].append(each['timestamp'])
@@ -84,16 +145,15 @@ def get_messages(driver, CAN_data, base_timestamp, last_timestamp, message_count
 					last_timestamp = int(each['timestamp'])
 					message_count += 1
 
-	return base_timestamp, last_timestamp, message_count;
+	return base_timestamp, last_timestamp, message_count
 
 def start_program_timer():
-
-	#Get current timestamp for comparison when writing CAN messages
+	"""Get current timestamp for comparison when writing CAN messages"""
 
 	current_timestamp = datetime.utcnow()
 	current_timestamp = calendar.timegm(current_timestamp.utctimetuple())
 
-	return current_timestamp;
+	return current_timestamp
 
 
 def main():
@@ -114,14 +174,16 @@ def main():
 	refreshrate = int(5)
     
 	navigate_to_data(driver)
+	query_data_at_datetime(driver)
+
 	while True:
-		base_CAN_timestamp, last_CAN_timestamp, message_count = get_messages(driver, CAN_data, base_timestamp, last_timestamp, message_count)
+		base_CAN_timestamp, last_CAN_timestamp, message_count = get_messages(driver, CAN_data, base_CAN_timestamp, last_CAN_timestamp, message_count)
 		print 'Message Count = ', message_count
 		print 'Basetimestamp = ', base_CAN_timestamp
 		print 'Lasttimestamp = ', last_CAN_timestamp
 		start_program_timestamp = start_program_timer()
 		print 'Start Program Timestamp = ', start_program_timestamp
-		write_CAN_message(CAN_data, base_timestamp, start_program_timestamp)
+		write_CAN_message(CAN_data, base_CAN_timestamp, start_program_timestamp)
 		#Refresh
 		#print 'Sleep'
 		#time.sleep(refreshrate)
