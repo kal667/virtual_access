@@ -1,7 +1,7 @@
 #!/usr/local/bin/python python
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
-from openxc_script import write_CAN_message
+from openxc_script import write_CAN_message, init_VI
 from datetime import datetime
 import time
 import urllib
@@ -175,6 +175,7 @@ def main():
     
 	navigate_to_data(driver)
 	query_data_at_datetime(driver)
+	vi = init_VI()
 
 	while True:
 		base_CAN_timestamp, last_CAN_timestamp, message_count = get_messages(driver, CAN_data, base_CAN_timestamp, last_CAN_timestamp, message_count)
@@ -183,7 +184,7 @@ def main():
 		print 'Lasttimestamp = ', last_CAN_timestamp
 		start_program_timestamp = start_program_timer()
 		print 'Start Program Timestamp = ', start_program_timestamp
-		write_CAN_message(CAN_data, base_CAN_timestamp, start_program_timestamp)
+		write_CAN_message(vi, CAN_data, base_CAN_timestamp, start_program_timestamp)
 		#Refresh
 		#print 'Sleep'
 		#time.sleep(refreshrate)

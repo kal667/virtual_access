@@ -1,9 +1,12 @@
 #!/usr/local/bin/python
 
+"""This is a test program for write functionality"""
+
 from openxc.interface import UsbVehicleInterface
 import time
 
 def init_VI():
+	"""Initializes VI with JSON formatting"""
 
 	print 'Setting VI'
 	vi = UsbVehicleInterface(payload_format="json")
@@ -12,13 +15,9 @@ def init_VI():
 
 def write_CAN_message(vi):
 	#This writes a low-level CAN message to the bus
-	
-	#print 'Setting format'
-	#vi.DataSource.format("json")
 
 	print 'Writing to CAN'
 	vi.write(bus=1, id=0x201, data="0x0000000080100000")
-	print 'Write success??'
 
 	return
 
