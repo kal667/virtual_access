@@ -1,5 +1,6 @@
 #!/usr/local/bin/python python
 from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.keys import Keys
 from openxc_script import write_CAN_message, init_VI
 from datetime import datetime
@@ -163,8 +164,18 @@ def main():
 	for i in range(4):
 		CAN_data.append([])
 
-	#Initialize 
-	driver = webdriver.Chrome()
+	#Initialize Chrome Driver with options to disable extensions/passwords
+	chrome_options = Options()
+	chrome_options.add_argument("--disable-extensions")
+	chrome_options.add_experimental_option('prefs', {
+		'credentials_enable_service': False,
+    	'profile': {
+    		'password_manager_enabled': False
+    	}
+	})
+	driver = webdriver.Chrome(chrome_options=chrome_options)
+	
+	#Initialize vars
 	base_CAN_timestamp = 0
 	last_CAN_timestamp = 0
 	message_count = 0
@@ -184,7 +195,7 @@ def main():
 		print 'Lasttimestamp = ', last_CAN_timestamp
 		start_program_timestamp = start_program_timer()
 		print 'Start Program Timestamp = ', start_program_timestamp
-		write_CAN_message(vi, CAN_data, base_CAN_timestamp, start_program_timestamp)
+		message_count = write_CAN_message(vi, CAN_data, base_CAN_timestamp, start_program_timestamp, message_count)
 		#Refresh
 		#print 'Sleep'
 		#time.sleep(refreshrate)
